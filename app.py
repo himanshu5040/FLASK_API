@@ -6,15 +6,17 @@ from register import LoginForm, RegisterForm
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "secret_key"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "secret_key")
+
 db_url = os.environ.get("DATABASE_URL")
 
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    db_url or "mysql+pymysql://root:password@localhost/flask_auth"
-)
+if not db_url:
+    raise RuntimeError("DATABASE_URL is not set.")
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
