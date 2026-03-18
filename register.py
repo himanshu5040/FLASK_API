@@ -53,3 +53,40 @@ class RegisterForm(FlaskForm):
     )
 
     submit = SubmitField("Register")
+
+
+class UserUpdateForm(FlaskForm):
+
+    username = StringField(
+        "Username",
+        validators=[
+            validators.DataRequired(),
+            validators.Length(min=4, max=25)
+        ]
+    )
+
+    email = EmailField(
+        "Email",
+        validators=[
+            validators.DataRequired(),
+            validators.Email()
+        ]
+    )
+
+    password = PasswordField(
+        "New Password",
+        validators=[
+            validators.Optional(),
+            validators.Length(min=6)
+        ]
+    )
+
+    confirm_password = PasswordField(
+        "Confirm New Password",
+        validators=[
+            validators.Optional(),
+            validators.EqualTo("password", message="Passwords must match")
+        ]
+    )
+
+    submit = SubmitField("Update User")

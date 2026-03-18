@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, flash, redirect, render_template, session, url_for
 from flask_sqlalchemy import SQLAlchemy
-from register import LoginForm, RegisterForm
+from register import LoginForm, RegisterForm, UserUpdateForm
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -20,6 +20,39 @@ app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+
+def get_admin_email():
+    return os.environ.get("ADMIN_EMAIL", "").strip().lower()
+
+
+def is_admin_user():
+    session_email = session.get("email", "").strip().lower()
+    admin_email = get_admin_email()
+    return bool(admin_email and session_email == admin_email)
+
+
+def require_login(message):
+    if not session.get("username"):
+        flash(message, "error")
+        return redirect(url_for("login"))
+    return None
+
+
+def require_admin():
+    login_redirect = require_login("Please sign in to continue.")
+    if login_redirect:
+        return login_redirect
+
+    if not get_admin_email():
+        flash("ADMIN_EMAIL is not configured on the server.", "error")
+        return redirect(url_for("dashboard"))
+
+    if not is_admin_user():
+        flash("Only the admin can access that page.", "error")
+        return redirect(url_for("dashboard"))
+
+    return None
 
 
 class User(db.Model):
@@ -85,13 +118,88 @@ def register():
 
 @app.route("/dashboard")
 def dashboard():
-    username = session.get("username")
+    login_redirect = require_login("Please sign in to open the dashboard.")
+    if login_redirect:
+        return login_redirect
 
-    if not username:
-        flash("Please sign in to open the dashboard.", "error")
-        return redirect(url_for("login"))
+    return render_template(
+        "dashboard.html",
+        username=session.get("username"),
+        is_admin=is_admin_user(),
+    )
 
-    return render_template("dashboard.html", username=username)
+
+@app.route("/users")
+def users():
+    admin_redirect = require_admin()
+    if admin_redirect:
+        return admin_redirect
+
+    registered_users = User.query.order_by(User.id.desc()).all()
+    return render_template(
+        "users.html",
+        username=session.get("username"),
+        users=registered_users,
+        total_users=len(registered_users),
+    )
+
+
+@app.route("/users/<int:user_id>/edit", methods=["GET", "POST"])
+def edit_user(user_id):
+    admin_redirect = require_admin()
+    if admin_redirect:
+        return admin_redirect
+
+    user = db.get_or_404(User, user_id)
+    form = UserUpdateForm(obj=user)
+
+    if form.validate_on_submit():
+        new_email = form.email.data.strip().lower()
+        existing_user = User.query.filter(
+            User.email == new_email,
+            User.id != user.id,
+        ).first()
+
+        if existing_user:
+            flash("Another account already uses this email address.", "error")
+            return render_template("edit_user.html", form=form, user=user)
+
+        current_email = user.email.strip().lower()
+        session_email = session.get("email", "").strip().lower()
+
+        if current_email == session_email and new_email != current_email:
+            flash("Update ADMIN_EMAIL before changing the admin account email.", "error")
+            return render_template("edit_user.html", form=form, user=user)
+
+        user.username = form.username.data.strip()
+        user.email = new_email
+
+        if form.password.data:
+            user.password_hash = generate_password_hash(form.password.data)
+
+        db.session.commit()
+        flash(f"{user.username}'s account was updated successfully.", "success")
+        return redirect(url_for("users"))
+
+    return render_template("edit_user.html", form=form, user=user)
+
+
+@app.route("/users/<int:user_id>/delete", methods=["POST"])
+def delete_user(user_id):
+    admin_redirect = require_admin()
+    if admin_redirect:
+        return admin_redirect
+
+    user = db.get_or_404(User, user_id)
+
+    if user.email.strip().lower() == session.get("email", "").strip().lower():
+        flash("You cannot delete the admin account that is currently signed in.", "error")
+        return redirect(url_for("users"))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"{user.username}'s account was deleted successfully.", "success")
+    return redirect(url_for("users"))
 
 
 @app.route("/logout", methods=["POST"])

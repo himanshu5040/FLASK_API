@@ -32,6 +32,12 @@
                 </article>
             </div>
 
+            {% if is_admin %}
+                <div class="dashboard-actions">
+                    <a href="{{ url_for('users') }}" class="secondary-button">Manage Registered Users</a>
+                </div>
+            {% endif %}
+
             <form method="POST" action="{{ url_for('logout') }}">
                 <button type="submit" class="btn-submit dashboard-button">Log out</button>
             </form>

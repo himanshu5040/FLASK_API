@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Edit registered user">
+    <title>Edit User</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="auth-container edit-user-container">
+        <div class="form-panel">
+            <div class="form-header">
+                <h1>Edit User</h1>
+                <p>Admin yahan se {{ user.username }} ka account update kar sakta hai.</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        {{ form.username(class="form-input" + (" error" if form.username.errors else ""), id="username", placeholder="Enter username") }}
+                        <span class="input-icon">&#128100;</span>
+                    </div>
+                    {% if form.username.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.username.errors %}
+                                <li class="field-error">{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-wrapper">
+                        {{ form.email(class="form-input" + (" error" if form.email.errors else ""), id="email", placeholder="Enter email") }}
+                        <span class="input-icon">&#9993;</span>
+                    </div>
+                    {% if form.email.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.email.errors %}
+                                <li class="field-error">{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="password">New Password</label>
+                    <div class="input-wrapper">
+                        {{ form.password(class="form-input" + (" error" if form.password.errors else ""), id="password", placeholder="Leave blank to keep current password") }}
+                        <span class="input-icon">&#128274;</span>
+                    </div>
+                    {% if form.password.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.password.errors %}
+                                <li class="field-error">{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <div class="input-wrapper">
+                        {{ form.confirm_password(class="form-input" + (" error" if form.confirm_password.errors else ""), id="confirm_password", placeholder="Confirm new password") }}
+                        <span class="input-icon">&#128274;</span>
+                    </div>
+                    {% if form.confirm_password.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.confirm_password.errors %}
+                                <li class="field-error">{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                {{ form.submit(class="btn-submit") }}
+            </form>
+
+            <p class="form-footer">
+                <a href="{{ url_for('users') }}">Back to user list</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
